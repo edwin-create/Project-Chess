@@ -1,26 +1,13 @@
 # frozen_string_literal: true
 
-# Straight-line sliding movement.
-
 require_relative 'piece'
+require_relative 'rook_movement'
 
-class Rook < Piece # rubocop:disable Style/Documentation
-  def valid_moves # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
-    x, y = position
-    potential_moves = []
-    # Generate all potential moves in the horizontal and vertical direction
-    (7 - y).times do |i|
-      potential_moves << [x, y + i + 1]
-    end
-    y.times do |i|
-      potential_moves << [x, y - i - 1]
-    end
-    (7 - x).times do |i|
-      potential_moves << [x + i + 1, y]
-    end
-    x.times do |i|
-      potential_moves << [x - i - 1, y]
-    end
-    potential_moves
+# Straight-line sliding movement.
+class Rook < Piece
+  include RookMovement
+
+  def valid_moves
+    rook_moves
   end
 end

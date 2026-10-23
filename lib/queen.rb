@@ -1,6 +1,15 @@
 # frozen_string_literal: true
 
-# Straight-line sliding movement.
+require_relative 'piece'
+require_relative 'rook_movement'
+require_relative 'bishop_movement'
 
-class Queen
+# A chess queen that combines rook and bishop movement.
+class Queen < Piece
+  include RookMovement
+  include BishopMovement
+
+  def valid_moves
+    rook_moves + bishop_moves
+  end
 end
