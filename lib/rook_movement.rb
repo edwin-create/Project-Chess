@@ -3,20 +3,20 @@
 # Straight-line sliding movement.
 module RookMovement
   def rook_moves # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
-    x, y = position
+    row, col = position
     potential_moves = []
     # Generate all potential moves in the horizontal and vertical direction
-    (7 - y).times do |i|
-      potential_moves << [x, y + i + 1]
+    (7 - col).times do |i|
+      potential_moves << [row, col + i + 1]
     end
-    y.times do |i|
-      potential_moves << [x, y - i - 1]
+    (7 - row).times do |i|
+      potential_moves << [row + i + 1, col]
     end
-    (7 - x).times do |i|
-      potential_moves << [x + i + 1, y]
+    col.times do |i|
+      potential_moves << [row, col - i - 1]
     end
-    x.times do |i|
-      potential_moves << [x - i - 1, y]
+    row.times do |i|
+      potential_moves << [row - i - 1, col]
     end
     potential_moves
   end

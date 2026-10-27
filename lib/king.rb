@@ -15,8 +15,8 @@ class King < Piece
   ].freeze
 
   def valid_moves
-    x, y = position
-    potential_moves = KING_MOVES.map { |move| [x + move[0], y + move[1]] }
+    row, col = position
+    potential_moves = KING_MOVES.map { |move| [row + move[0], col + move[1]] }
     potential_moves.select { |move| valid_position?(move) }
   end
 end
