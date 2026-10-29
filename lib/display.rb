@@ -26,15 +26,15 @@ class Display
   def render_rows(output) # rubocop:disable Metrics/MethodLength
     # We display ranks from 8 down to 1 for the board, but the board itself is stored
     # with zero-based indexes in arrays, so row 8 becomes index 7 and row 1 becomes index 0.
-    # That is why we pass row - 1 into render_square: the printed rank is 1-based, but
+    # That is why we pass 8-row into render_square: the printed rank is 1-based, but
     # the internal board coordinates are 0-based.
     8.downto(1) do |row|
       output << "#{row} | "
 
       # The column loop starts at 0 because Ruby arrays and board positions are zero-indexed.
       # This matches the coordinate system used by square_color and render_square.
-      8.times do |col|
-        output << render_square(row - 1, col)
+      1.upto(8) do |col|
+        output << render_square(8 - row, col - 1)
         output << '|'
       end
 
