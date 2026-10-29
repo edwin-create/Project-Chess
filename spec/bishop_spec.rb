@@ -48,4 +48,9 @@ describe Bishop do # rubocop:disable Metrics/BlockLength
       )
     end
   end
+  describe '#piece_type' do
+    it 'returns the correct piece type' do
+      expect(bishop.piece_type).to eq(:bishop)
+    end
+  end
 end

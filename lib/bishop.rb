@@ -9,4 +9,8 @@ class Bishop < Piece
   def valid_moves
     bishop_moves
   end
+
+  def piece_type
+    :bishop
+  end
 end

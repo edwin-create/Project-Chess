@@ -40,4 +40,9 @@ describe Knight do # rubocop:disable Metrics/BlockLength
       )
     end
   end
+  describe '#piece_type' do
+    it 'returns the correct piece type' do
+      expect(knight.piece_type).to eq(:knight)
+    end
+  end
 end

@@ -21,4 +21,8 @@ class Knight < Piece # rubocop:disable Style/Documentation
     potential_moves = KNIGHT_MOVES.map { |move| [row + move[0], col + move[1]] }
     potential_moves.select { |move| valid_position?(move) }
   end
+
+  def piece_type
+    :knight
+  end
 end

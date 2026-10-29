@@ -33,4 +33,9 @@ describe Pawn do # rubocop:disable Metrics/BlockLength
       expect(black_pawn.capture_moves).to match_array([[2, 1]])
     end
   end
+  describe '#piece_type' do
+    it 'returns the correct piece type' do
+      expect(white_pawn.piece_type).to eq(:pawn)
+    end
+  end
 end

@@ -66,4 +66,23 @@ describe Piece do # rubocop:disable Metrics/BlockLength
       end.to raise_error(FrozenError)
     end
   end
+  describe '#symbol' do
+    it 'returns the correct symbol for a white pawn' do
+      white_pawn = Pawn.new(:white, [0, 0])
+      expect(white_pawn.symbol).to eq('♙')
+    end
+
+    it 'returns the correct symbol for a black pawn' do
+      black_pawn = Pawn.new(:black, [0, 0])
+      expect(black_pawn.symbol).to eq('♟')
+    end
+    it 'returns the correct symbol for a white knight' do
+      white_knight = Knight.new(:white, [0, 0])
+      expect(white_knight.symbol).to eq('♘')
+    end
+    it 'returns the correct symbol for a black knight' do
+      black_knight = Knight.new(:black, [0, 0])
+      expect(black_knight.symbol).to eq('♞')
+    end
+  end
 end

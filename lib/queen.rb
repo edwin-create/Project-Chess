@@ -12,4 +12,8 @@ class Queen < Piece
   def valid_moves
     rook_moves + bishop_moves
   end
+
+  def piece_type
+    :queen
+  end
 end

@@ -19,4 +19,8 @@ class King < Piece
     potential_moves = KING_MOVES.map { |move| [row + move[0], col + move[1]] }
     potential_moves.select { |move| valid_position?(move) }
   end
+
+  def piece_type
+    :king
+  end
 end

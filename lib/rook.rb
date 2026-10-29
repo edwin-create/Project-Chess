@@ -10,4 +10,8 @@ class Rook < Piece
   def valid_moves
     rook_moves
   end
+
+  def piece_type
+    :rook
+  end
 end

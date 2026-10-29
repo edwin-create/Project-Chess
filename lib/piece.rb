@@ -4,6 +4,25 @@
 class Piece
   attr_reader :color, :position
 
+  SYMBOLS = {
+    white: {
+      king: '♔',
+      queen: '♕',
+      rook: '♖',
+      bishop: '♗',
+      knight: '♘',
+      pawn: '♙'
+    },
+    black: {
+      king: '♚',
+      queen: '♛',
+      rook: '♜',
+      bishop: '♝',
+      knight: '♞',
+      pawn: '♟'
+    }
+  }.freeze
+
   def initialize(color, position)
     @color = color
 
@@ -16,6 +35,10 @@ class Piece
     raise(ArgumentError, 'Invalid position') unless valid_position?(new_position)
 
     @position = new_position.dup.freeze
+  end
+
+  def symbol
+    SYMBOLS[color][piece_type]
   end
 
   private

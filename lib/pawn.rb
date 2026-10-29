@@ -33,4 +33,8 @@ class Pawn < Piece
     # select only valid positions
     potential_moves.select { |move| valid_position?(move) }
   end
+
+  def piece_type
+    :pawn
+  end
 end

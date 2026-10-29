@@ -61,4 +61,9 @@ describe Rook do # rubocop:disable Metrics/BlockLength
       )
     end
   end
+  describe '#piece_type' do
+    it 'returns the correct piece type' do
+      expect(rook.piece_type).to eq(:rook)
+    end
+  end
 end

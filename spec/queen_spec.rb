@@ -85,4 +85,9 @@ describe Queen do # rubocop:disable Metrics/BlockLength
       )
     end
   end
+  describe '#piece_type' do
+    it 'returns the correct piece type' do
+      expect(queen.piece_type).to eq(:queen)
+    end
+  end
 end
