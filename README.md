@@ -3,4 +3,4 @@ Chessy is a lightweight, pure Ruby chess engine designed to explore the mechanic
 
 ## Current Display Output
 
-![Project Chess board display](docs/chess-board-display.svg)
+![Project Chess board display](docs/chess-board-display.png)
