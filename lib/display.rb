@@ -64,7 +64,7 @@ class Display
   end
 
   def horizontal_border
-    '  +---+---+---+---+---+---+---+---+'
+    '  +----+---+---+---+---+---+---+---+'
   end
 
   def column_labels
