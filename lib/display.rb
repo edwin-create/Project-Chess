@@ -9,7 +9,7 @@ class Display
     puts 'The first player to checkmate their opponent wins!'
   end
 
-  def render(board)
+  def render(_board)
     output = String.new
     output << column_labels
     output << "\n"

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../lib/queen'
 describe Queen do # rubocop:disable Metrics/BlockLength
   let(:queen) { Queen.new(:white, [0, 0]) }

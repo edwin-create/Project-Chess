@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../lib/king'
 describe King do # rubocop:disable Metrics/BlockLength
   let(:king) { King.new(:white, [0, 0]) }
