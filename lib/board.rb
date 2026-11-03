@@ -41,7 +41,7 @@ class Board
     grid[row][col]
   end
 
-  def move_piece(from, to) # rubocop:disable Metrics/AbcSize
+  def move_piece(from, to) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     raise ArgumentError, 'Invalid position' unless valid_position?(from) && valid_position?(to)
 
     piece = piece_at(from)
@@ -59,7 +59,37 @@ class Board
     piece.update_position(to)
   end
 
-  def valid_move?(piece, to) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
+  def valid_move?(piece, to)
+    if piece.is_a?(Pawn)
+      valid_pawn_move?(piece, to)
+    else
+      regular_move?(piece, to)
+    end
+  end
+
+  private
+
+  def valid_pawn_move?(piece, to)
+    return false unless piece.is_a?(Pawn) && valid_position?(to)
+
+    target = piece_at(to)
+
+    if target.nil?
+      pawn_can_advance?(piece, to)
+    else
+      pawn_can_capture?(piece, to, target)
+    end
+  end
+
+  def pawn_can_advance?(pawn, to)
+    pawn.valid_moves.include?(to) && path_clear?(pawn.position, to)
+  end
+
+  def pawn_can_capture?(pawn, to, target)
+    pawn.capture_moves.include?(to) && pawn.color != target.color
+  end
+
+  def regular_move?(piece, to) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
     return false unless valid_position?(to)
     return false if piece.nil?
 
@@ -76,8 +106,6 @@ class Board
 
     true
   end
-
-  private
 
   def path_clear?(from, to) # rubocop:disable Metrics/MethodLength
     row1, col1 = from

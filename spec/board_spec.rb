@@ -185,4 +185,59 @@ describe Board do # rubocop:disable Metrics/BlockLength
       expect(board.valid_move?(rook, [3, 0])).to be false
     end
   end
+  describe '#valid_move? for pawns' do
+    let(:board) { Board.new }
+
+    it 'allows a pawn to move one square forward into an empty square' do
+      pawn = board.piece_at([6, 4])
+
+      expect(board.valid_move?(pawn, [5, 4])).to be true
+    end
+
+    it 'allows a pawn to move two squares forward on its first move' do
+      pawn = board.piece_at([6, 4])
+
+      expect(board.valid_move?(pawn, [4, 4])).to be true
+    end
+
+    it 'rejects a pawn moving forward into an occupied square' do
+      pawn = board.piece_at([6, 4])
+      board.move_piece([1, 4], [3, 4])
+      board.move_piece([3, 4], [4, 4])
+      board.move_piece([4, 4], [5, 4])
+
+      expect(board.valid_move?(pawn, [5, 4])).to be false
+    end
+
+    it 'rejects a pawn moving diagonally into an empty square' do
+      pawn = board.piece_at([6, 4])
+
+      expect(board.valid_move?(pawn, [5, 5])).to be false
+    end
+
+    it 'allows a pawn to capture an opponent diagonally' do
+      pawn = board.piece_at([6, 4])
+      board.move_piece([1, 5], [3, 5])
+      board.move_piece([3, 5], [4, 5])
+      board.move_piece([4, 5], [5, 5])
+
+      expect(board.valid_move?(pawn, [5, 5])).to be true
+    end
+
+    it 'rejects a pawn capturing a friendly piece diagonally' do
+      pawn = board.piece_at([6, 4])
+      board.move_piece([6, 5], [5, 5])
+
+      expect(board.valid_move?(pawn, [5, 5])).to be false
+    end
+
+    it 'rejects a two-square move when the intermediate square is occupied' do
+      pawn = board.piece_at([6, 4])
+      board.move_piece([1, 4], [3, 4])
+      board.move_piece([3, 4], [4, 4])
+      board.move_piece([4, 4], [5, 4])
+
+      expect(board.valid_move?(pawn, [4, 4])).to be false
+    end
+  end
 end
