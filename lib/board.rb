@@ -62,6 +62,8 @@ class Board
   def valid_move?(piece, to)
     if piece.is_a?(Pawn)
       valid_pawn_move?(piece, to)
+    elsif piece.is_a?(King)
+      valid_king_move?(piece, to)
     else
       regular_move?(piece, to)
     end
@@ -69,15 +71,34 @@ class Board
 
   private
 
+  def valid_king_move?(piece, to)
+    return false unless piece.is_a?(King) && valid_position?(to)
+
+    destination_piece = piece_at(to)
+    if destination_piece.nil?
+      king_can_move?(piece, to)
+    else
+      king_can_capture?(piece, to, destination_piece)
+    end
+  end
+
+  def king_can_move?(piece, to)
+    piece.valid_moves.include?(to)
+  end
+
+  def king_can_capture?(piece, to, destination_piece)
+    piece.valid_moves.include?(to) && destination_piece.color != piece.color
+  end
+
   def valid_pawn_move?(piece, to)
     return false unless piece.is_a?(Pawn) && valid_position?(to)
 
-    target = piece_at(to)
+    destination_piece = piece_at(to)
 
-    if target.nil?
+    if destination_piece.nil?
       pawn_can_advance?(piece, to)
     else
-      pawn_can_capture?(piece, to, target)
+      pawn_can_capture?(piece, to, destination_piece)
     end
   end
 

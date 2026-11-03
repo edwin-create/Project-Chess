@@ -240,4 +240,51 @@ describe Board do # rubocop:disable Metrics/BlockLength
       expect(board.valid_move?(pawn, [4, 4])).to be false
     end
   end
+  describe '#valid_move? for kings' do
+    let(:board) { Board.new }
+
+    it 'allows a king to move one square horizontally' do
+      board.move_piece([1, 4], [2, 4])
+      board.move_piece([1, 5], [2, 5])
+      board.move_piece([0, 4], [1, 4])
+
+      king = board.piece_at([1, 4])
+
+      expect(board.valid_move?(king, [1, 5])).to be true
+    end
+    it 'allows a king to move one square diagonally' do
+      board.move_piece([1, 4], [2, 4])
+      board.move_piece([0, 4], [1, 4])
+
+      king = board.piece_at([1, 4])
+
+      expect(board.valid_move?(king, [2, 5])).to be true
+    end
+    it 'allows a king to capture an opponent piece' do
+      board.move_piece([1, 4], [2, 4])
+
+      board.move_piece([6, 5], [5, 5])
+      board.move_piece([5, 5], [4, 5])
+      board.move_piece([4, 5], [3, 5])
+      board.move_piece([3, 5], [2, 5])
+
+      board.move_piece([0, 4], [1, 4])
+
+      king = board.piece_at([1, 4])
+
+      expect(board.valid_move?(king, [2, 5])).to be true
+    end
+
+    it 'rejects a king moving more than one square' do
+      king = board.piece_at([0, 4])
+
+      expect(board.valid_move?(king, [2, 4])).to be false
+    end
+
+    it 'rejects a king capturing a friendly piece' do
+      king = board.piece_at([0, 4])
+
+      expect(board.valid_move?(king, [0, 3])).to be false
+    end
+  end
 end
