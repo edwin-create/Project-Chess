@@ -456,4 +456,101 @@ describe Board do # rubocop:disable Metrics/BlockLength
       expect(board.piece_at([3, 2])).to be_nil
     end
   end
+  describe '#checkmate?' do
+    it 'returns true when the king is in checkmate' do
+      board = Board.new(setup: false)
+      king = King.new(:white, [0, 0])
+      rook1 = Rook.new(:black, [0, 7])
+      rook2 = Rook.new(:black, [1, 7])
+      board.place_piece(king, [0, 0])
+      board.place_piece(rook1, [0, 7])
+      board.place_piece(rook2, [1, 7])
+
+      expect(board.checkmate?(:white)).to be true
+    end
+
+    it 'returns false when the king is not in checkmate' do
+      board = Board.new(setup: false)
+      king = King.new(:white, [4, 4])
+      rook = Rook.new(:black, [4, 0])
+      knight = Knight.new(:white, [6, 2])
+      board.place_piece(king, [4, 4])
+      board.place_piece(rook, [4, 0])
+      board.place_piece(knight, [6, 2])
+
+      expect(board.checkmate?(:white)).to be false
+    end
+    it 'returns false when the king is not in check' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [4, 4]), [4, 4])
+      board.place_piece(Rook.new(:black, [0, 0]), [0, 0])
+
+      expect(board.checkmate?(:white)).to be false
+    end
+    it 'returns false when another piece can capture the checking piece' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Bishop.new(:white, [4, 3]), [4, 3])
+      board.place_piece(Rook.new(:black, [0, 7]), [0, 7])
+      board.place_piece(Rook.new(:black, [1, 7]), [1, 7])
+
+      expect(board.checkmate?(:white)).to be false
+    end
+    it 'returns false when another piece can block the check' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Rook.new(:white, [3, 3]), [3, 3])
+      board.place_piece(Rook.new(:black, [0, 7]), [0, 7])
+      board.place_piece(Rook.new(:black, [1, 7]), [1, 7])
+
+      expect(board.checkmate?(:white)).to be false
+    end
+    it 'does not let the king escape along the line of the attack' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 1]), [0, 1])
+      board.place_piece(Rook.new(:black, [0, 7]), [0, 7])
+      board.place_piece(Rook.new(:black, [1, 7]), [1, 7])
+
+      expect(board.checkmate?(:white)).to be true
+    end
+    it 'returns true when the only blocking piece is pinned' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Queen.new(:white, [2, 2]), [2, 2])
+      board.place_piece(Bishop.new(:black, [4, 4]), [4, 4])
+      board.place_piece(Rook.new(:black, [0, 7]), [0, 7])
+      board.place_piece(Rook.new(:black, [1, 7]), [1, 7])
+
+      expect(board.checkmate?(:white)).to be true
+    end
+    it 'returns false for stalemate (no legal moves but not in check)' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Queen.new(:black, [2, 1]), [2, 1])
+
+      expect(board.checkmate?(:white)).to be false
+    end
+    it 'returns false when a pawn captures the attacking piece diagonally' do
+      board = Board.new(setup: false)
+
+      # King is in check by a bishop or knight or rook positioned diagonally
+      board.place_piece(King.new(:white, [2, 2]), [2, 2])
+
+      # Attacking piece is positioned at [1, 1] delivering a check
+      board.place_piece(Bishop.new(:black, [1, 1]), [1, 1])
+
+      # White pawn is right there at [2, 0], and its diagonal capture target is [1, 1]!
+      board.place_piece(Pawn.new(:white, [2, 0]), [2, 0])
+
+      expect(board.checkmate?(:white)).to be false
+    end
+    it 'returns false for a doublecheck' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [4, 4]), [4, 4])
+      board.place_piece(Rook.new(:black, [4, 0]), [4, 0])
+      board.place_piece(Bishop.new(:black, [2, 2]), [2, 2])
+      board.place_piece(Rook.new(:white, [5, 4]), [5, 4])
+      expect(board.checkmate?(:white)).to be false
+    end
+  end
 end

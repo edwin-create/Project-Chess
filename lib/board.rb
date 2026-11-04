@@ -94,7 +94,7 @@ class Board # rubocop:disable Metrics/ClassLength
         next if piece.nil? || piece.color == color
 
         if piece.is_a?(Pawn)
-          return true if piece.capture_moves.include?(position)
+          return true if piece.pawn_capture_moves.include?(position)
         elsif piece.is_a?(King) || piece.is_a?(Knight)
           return true if piece.valid_moves.include?(position)
         elsif piece.valid_moves.include?(position) && path_clear?(piece.position, position)
@@ -142,7 +142,55 @@ class Board # rubocop:disable Metrics/ClassLength
     in_check
   end
 
+  def checkmate?(color) # rubocop:disable Metrics/MethodLength,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
+    return false unless in_check?(color)
+
+    king_position = nil
+
+    (0..7).each do |row|
+      (0..7).each do |col|
+        piece = piece_at([row, col])
+        if piece.is_a?(King) && piece.color == color
+          king_position = [row, col]
+          break
+        end
+      end
+      break if king_position
+    end
+    king = piece_at(king_position)
+    # 1. Check if the king has any valid, safe escape moves
+    king.valid_moves.each do |move|
+      return false if valid_move?(king, move)
+    end
+    return false if can_save_checkmate_by_blocking_or_capture?(color)
+
+    true
+  end
+
   private
+
+  def can_save_checkmate_by_blocking_or_capture?(color) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/AbcSize,Metrics/MethodLength,Metrics/PerceivedComplexity
+    # Implementation for checking if a checkmate can be saved by blocking
+    (0..7).each do |row|
+      (0..7).each do |col|
+        piece = piece_at([row, col])
+        next if piece.nil? || piece.color != color || piece.is_a?(King)
+
+        if piece.is_a?(Pawn)
+          (piece.pawn_capture_moves + piece.valid_moves).each do |move|
+            return true if valid_move?(piece, move)
+          end
+
+        else
+          piece.valid_moves.each do |move|
+            return true if valid_move?(piece, move)
+          end
+        end
+      end
+    end
+
+    false
+  end
 
   def valid_king_move?(piece, to)
     return false unless piece.is_a?(King) && valid_position?(to)
@@ -180,7 +228,7 @@ class Board # rubocop:disable Metrics/ClassLength
   end
 
   def pawn_can_capture?(pawn, to, destination_piece)
-    pawn.capture_moves.include?(to) && pawn.color != destination_piece.color
+    pawn.pawn_capture_moves.include?(to) && pawn.color != destination_piece.color
   end
 
   def regular_move?(piece, to) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength

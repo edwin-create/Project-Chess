@@ -26,13 +26,13 @@ describe Pawn do # rubocop:disable Metrics/BlockLength
     end
   end
 
-  describe '#capture_moves' do
+  describe '#pawn_capture_moves' do
     it 'returns valid capture moves for the white pawn' do
-      expect(white_pawn.capture_moves).to match_array([[5, 1]])
+      expect(white_pawn.pawn_capture_moves).to match_array([[5, 1]])
     end
 
     it 'returns valid capture moves for the black pawn' do
-      expect(black_pawn.capture_moves).to match_array([[2, 1]])
+      expect(black_pawn.pawn_capture_moves).to match_array([[2, 1]])
     end
   end
   describe '#piece_type' do

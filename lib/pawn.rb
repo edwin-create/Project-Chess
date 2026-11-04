@@ -20,7 +20,7 @@ class Pawn < Piece
     potential_moves.select { |move| valid_position?(move) }
   end
 
-  def capture_moves # rubocop:disable Metrics/AbcSize
+  def pawn_capture_moves # rubocop:disable Metrics/AbcSize
     row, col = position
     potential_moves = []
 
