@@ -167,7 +167,45 @@ class Board # rubocop:disable Metrics/ClassLength
     true
   end
 
+  def stalemate?(color)
+    return false if in_check?(color) || any_piece_has_valid_moves?(color)
+
+    true
+  end
+
+  def insufficient_material? # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
+    pieces = grid.flatten.compact.reject { |piece| piece.is_a?(King) }
+
+    return true if pieces.empty?                                   # king vs king
+    return false if pieces.any? { |piece| piece.is_a?(Queen) || piece.is_a?(Rook) || piece.is_a?(Pawn) }
+    return true if pieces.size == 1                                # one knight or bishop
+
+    pieces.all? { |piece| piece.is_a?(Bishop) } &&
+      (pieces.map { |piece| piece.position.sum.even? }.uniq.size == 1)
+  end
+
   private
+
+  def any_piece_has_valid_moves?(color) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
+    (0..7).each do |row|
+      (0..7).each do |col|
+        piece = piece_at([row, col])
+        next if piece.nil? || piece.color != color
+
+        if piece.is_a?(Pawn)
+          (piece.pawn_capture_moves + piece.valid_moves).each do |move|
+            return true if valid_move?(piece, move)
+          end
+        else
+          piece.valid_moves.each do |move|
+            return true if valid_move?(piece, move)
+          end
+        end
+      end
+    end
+
+    false
+  end
 
   def can_save_checkmate_by_blocking_or_capture?(color) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/AbcSize,Metrics/MethodLength,Metrics/PerceivedComplexity
     # Implementation for checking if a checkmate can be saved by blocking

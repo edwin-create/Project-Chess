@@ -553,4 +553,260 @@ describe Board do # rubocop:disable Metrics/BlockLength
       expect(board.checkmate?(:white)).to be false
     end
   end
+  describe '#stalemate?' do
+    it 'returns true when the king is not in check but has no legal moves' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Queen.new(:black, [2, 1]), [2, 1])
+      board.place_piece(Rook.new(:black, [1, 2]), [1, 2])
+
+      expect(board.stalemate?(:white)).to be true
+    end
+
+    it 'returns false when the king is in check' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Queen.new(:black, [1, 1]), [1, 1])
+
+      expect(board.stalemate?(:white)).to be false
+    end
+
+    it 'returns false when the king has legal moves' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [4, 4]), [4, 4])
+      board.place_piece(Rook.new(:black, [0, 0]), [0, 0])
+
+      expect(board.stalemate?(:white)).to be false
+    end
+    it 'returns false for two bare kings, because white can still move' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+
+      expect(board.stalemate?(:white)).to be false
+    end
+    it 'returns false when the white king has no legal moves but another white piece can move' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])     # a1
+      board.place_piece(Pawn.new(:white, [0, 1]), [0, 1])     # a2
+      board.place_piece(Pawn.new(:white, [1, 1]), [1, 1])     # b2
+      board.place_piece(Bishop.new(:black, [3, 2]), [3, 2])   # d3 (attacks b1)
+      board.place_piece(Knight.new(:black, [3, 1]), [3, 1])   # d2 (Black Knight)
+      board.place_piece(Rook.new(:white, [7, 0]), [7, 0])     # h1 (White Rook that can move)
+      expect(board.stalemate?(:white)).to be false
+    end
+  end
+  describe '#insufficient_material?' do # rubocop:disable Metrics/BlockLength
+    it 'returns true for king vs king' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+
+      expect(board.insufficient_material?).to be true
+    end
+    it 'returns false when a queen is still on the board' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+      board.place_piece(Queen.new(:black, [3, 3]), [3, 3])
+      expect(board.insufficient_material?).to be false
+    end
+    it 'returns true when a single minor material remains versus a lone king' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+      board.place_piece(Knight.new(:black, [3, 3]), [3, 3])
+      expect(board.insufficient_material?).to be true
+    end
+
+    it 'returns false for a knight and a bishop together against a lone king' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+      board.place_piece(Knight.new(:white, [1, 5]), [1, 5])
+      board.place_piece(Bishop.new(:white, [3, 2]), [3, 2])
+      expect(board.insufficient_material?).to be false
+    end
+    it 'returns false for two knights vs a lone king' do # Official chess rule
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+      board.place_piece(Knight.new(:black, [5, 3]), [5, 3])
+      board.place_piece(Knight.new(:black, [3, 3]), [3, 3])
+      expect(board.insufficient_material?).to be false
+    end
+
+    it 'returns false for two knights vs a lone king' do # Official chess rules
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:black, [0, 0]), [0, 0])
+      board.place_piece(King.new(:white, [7, 7]), [7, 7])
+      board.place_piece(Knight.new(:white, [5, 3]), [5, 3])
+      board.place_piece(Knight.new(:white, [3, 3]), [3, 3])
+      expect(board.insufficient_material?).to be false
+    end
+    it 'returns false for two knights vs a king and a bishop' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Knight.new(:white, [3, 3]), [3, 3])
+      board.place_piece(Knight.new(:white, [5, 5]), [5, 5])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+      board.place_piece(Bishop.new(:black, [1, 5]), [1, 5])
+      expect(board.insufficient_material?).to be false
+    end
+
+    it 'returns true for two same-colored bishops vs a lone king' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Bishop.new(:white, [5, 7]), [5, 7])
+      board.place_piece(Bishop.new(:black, [3, 5]), [3, 5])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+      expect(board.insufficient_material?).to be true
+    end
+
+    it 'returns false for two opposite-colored bishops vs a lone king' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Bishop.new(:white, [1, 1]), [1, 1])
+      board.place_piece(Bishop.new(:white, [3, 4]), [3, 4])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+      expect(board.insufficient_material?).to be false
+    end
+
+    it 'returns false for a knight vs a knight' do
+      board = Board.new(setup: false)
+      board.place_piece(King.new(:white, [0, 0]), [0, 0])
+      board.place_piece(Knight.new(:white, [2, 3]), [2, 3])
+      board.place_piece(King.new(:black, [7, 7]), [7, 7])
+      board.place_piece(Knight.new(:black, [5, 4]), [5, 4])
+      expect(board.insufficient_material?).to be false
+    end
+  end
+  describe '#insufficient_material?' do
+    # Official rule: a draw only when no sequence of moves could ever reach mate.
+    # Dead positions: K vs K, K + one knight/bishop vs K, and bishops that all
+    # sit on the same square color. Everything else keeps the game going.
+    let(:white_king) { King.new(:white, [0, 0]) }
+    let(:black_king) { King.new(:black, [7, 7]) }
+
+    def board_with(*pieces)
+      board = Board.new(setup: false)
+      pieces.each { |piece| board.place_piece(piece, piece.position) }
+      board
+    end
+
+    context 'when the position is dead (insufficient material)' do
+      it 'is true for king vs king' do
+        board = board_with(white_king, black_king)
+
+        expect(board.insufficient_material?).to be true
+      end
+
+      it 'is true for a lone king vs king and knight (black knight)' do
+        board = board_with(white_king, black_king, Knight.new(:black, [3, 3]))
+
+        expect(board.insufficient_material?).to be true
+      end
+
+      it 'is true for a lone king vs king and knight (white knight)' do
+        board = board_with(white_king, black_king, Knight.new(:white, [3, 3]))
+
+        expect(board.insufficient_material?).to be true
+      end
+
+      it 'is true for a lone king vs king and bishop (black bishop)' do
+        board = board_with(white_king, black_king, Bishop.new(:black, [1, 5]))
+
+        expect(board.insufficient_material?).to be true
+      end
+
+      it 'is true for a lone king vs king and bishop (white bishop)' do
+        board = board_with(white_king, black_king, Bishop.new(:white, [1, 5]))
+
+        expect(board.insufficient_material?).to be true
+      end
+
+      it 'is true for a bishop each when both bishops are on the same square color' do
+        board = board_with(white_king, black_king,
+                           Bishop.new(:black, [1, 5]), Bishop.new(:white, [7, 3]))
+
+        expect(board.insufficient_material?).to be true
+      end
+
+      it 'is true for two same-colored bishops on one side vs a lone king' do
+        board = board_with(white_king, black_king,
+                           Bishop.new(:white, [2, 2]), Bishop.new(:white, [4, 6]))
+
+        expect(board.insufficient_material?).to be true
+      end
+    end
+
+    context 'when mate is still possible (play continues)' do
+      it 'is false when a queen is on the board' do
+        board = board_with(white_king, black_king, Queen.new(:black, [3, 3]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false when a rook is on the board' do
+        board = board_with(white_king, black_king, Rook.new(:black, [3, 3]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false when a pawn is on the board' do
+        board = board_with(white_king, black_king, Pawn.new(:white, [3, 3]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false for two black knights vs a lone white king' do
+        board = board_with(white_king, black_king,
+                           Knight.new(:black, [5, 3]), Knight.new(:black, [3, 3]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false for two white knights vs a lone black king' do
+        board = board_with(white_king, black_king,
+                           Knight.new(:white, [5, 3]), Knight.new(:white, [3, 3]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false for a knight and a bishop vs a lone king' do
+        board = board_with(white_king, black_king,
+                           Knight.new(:white, [1, 5]), Bishop.new(:white, [3, 2]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false for a bishop each when the bishops are on opposite square colors' do
+        board = board_with(white_king, black_king,
+                           Bishop.new(:black, [1, 5]), Bishop.new(:white, [3, 2]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false for two opposite-colored bishops vs a lone king' do
+        board = board_with(white_king, black_king,
+                           Bishop.new(:white, [1, 1]), Bishop.new(:white, [3, 4]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false for a knight each' do
+        board = board_with(white_king, black_king,
+                           Knight.new(:white, [2, 3]), Knight.new(:black, [5, 4]))
+
+        expect(board.insufficient_material?).to be false
+      end
+
+      it 'is false for a bishop vs a knight' do
+        board = board_with(white_king, black_king,
+                           Bishop.new(:white, [1, 5]), Knight.new(:black, [5, 4]))
+
+        expect(board.insufficient_material?).to be false
+      end
+    end
+  end
 end
