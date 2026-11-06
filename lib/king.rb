@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'piece'
+
 # One-square movement
 class King < Piece
   KING_MOVES = [

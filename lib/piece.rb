@@ -29,6 +29,7 @@ class Piece
     raise(ArgumentError, 'Invalid position') unless valid_position?(position)
 
     @position = position.dup.freeze
+    @has_moved = false
   end
 
   def update_position(new_position)
@@ -39,6 +40,14 @@ class Piece
 
   def symbol
     SYMBOLS[color][piece_type]
+  end
+
+  def moved?
+    @has_moved
+  end
+
+  def mark_as_moved
+    @has_moved = true
   end
 
   private

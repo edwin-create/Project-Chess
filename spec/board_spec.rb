@@ -809,4 +809,189 @@ describe Board do # rubocop:disable Metrics/BlockLength
       end
     end
   end
+  describe '#castling_allowed?' do
+    let(:board) { Board.new(setup: false) }
+    let(:king) { King.new(:white, [7, 4]) }
+    let(:kingside_rook) { Rook.new(:white, [7, 7]) }
+    let(:queenside_rook) { Rook.new(:white, [7, 0]) }
+    let(:enemy_king) { King.new(:black, [0, 0]) }
+
+    before do
+      [king, kingside_rook, queenside_rook, enemy_king].each do |piece|
+        board.place_piece(piece, piece.position)
+      end
+    end
+
+    %i[kingside queenside].each do |side|
+      it "is allowed on the #{side} when nothing stands in the way" do
+        expect(board.castling_allowed?(:white, side)).to be true
+      end
+
+      it "is not allowed on the #{side} once the king has moved" do
+        king.mark_as_moved
+
+        expect(board.castling_allowed?(:white, side)).to be false
+      end
+
+      it "is not allowed on the #{side} while the king is in check" do
+        board.place_piece(Rook.new(:black, [0, 4]), [0, 4])
+
+        expect(board.castling_allowed?(:white, side)).to be false
+      end
+    end
+
+    it 'is not allowed on a side whose rook has moved, but the other side still is' do
+      kingside_rook.mark_as_moved
+
+      expect(board.castling_allowed?(:white, :kingside)).to be false
+      expect(board.castling_allowed?(:white, :queenside)).to be true
+    end
+
+    { kingside: [7, 6], queenside: [7, 1] }.each do |side, square|
+      it "is not allowed when a piece stands between the king and the #{side} rook" do
+        board.place_piece(Knight.new(:white, square), square)
+
+        expect(board.castling_allowed?(:white, side)).to be false
+      end
+    end
+
+    it 'is not allowed when the rook is missing from its corner' do
+      lonely = Board.new(setup: false)
+      lonely.place_piece(King.new(:white, [7, 4]), [7, 4])
+      lonely.place_piece(King.new(:black, [0, 0]), [0, 0])
+
+      expect(lonely.castling_allowed?(:white, :kingside)).to be false
+    end
+
+    {
+      'passes through' => { kingside: [0, 5], queenside: [0, 3] },
+      'lands on' => { kingside: [0, 6], queenside: [0, 2] }
+    }.each do |description, attackers|
+      attackers.each do |side, square|
+        it "is not allowed on the #{side} when the king #{description} an attacked square" do
+          board.place_piece(Rook.new(:black, square), square)
+
+          expect(board.castling_allowed?(:white, side)).to be false
+        end
+      end
+    end
+
+    it 'is still allowed on the queenside when only the b-file square is attacked' do
+      board.place_piece(Rook.new(:black, [0, 1]), [0, 1])
+
+      expect(board.castling_allowed?(:white, :queenside)).to be true
+    end
+
+    it 'works the same way for black' do
+      black_board = Board.new(setup: false)
+      black_board.place_piece(King.new(:black, [0, 4]), [0, 4])
+      black_board.place_piece(Rook.new(:black, [0, 7]), [0, 7])
+      black_board.place_piece(King.new(:white, [7, 0]), [7, 0])
+
+      expect(black_board.castling_allowed?(:black, :kingside)).to be true
+    end
+  end
+  describe '#execute_castling' do
+    context 'when white kingside castling is executed' do
+      it 'moves the white king from [7, 4] to [7, 6] and the rook from [7, 7] to [7, 5]' do
+        board = Board.new(setup: false)
+        king = King.new(:white, [7, 4])
+        rook = Rook.new(:white, [7, 7])
+
+        board.place_piece(king, [7, 4])
+        board.place_piece(rook, [7, 7])
+
+        board.execute_castling(:white, :kingside)
+
+        expect(board.piece_at([7, 4])).to be_nil
+        expect(board.piece_at([7, 7])).to be_nil
+        expect(board.piece_at([7, 6])).to eq(king)
+        expect(board.piece_at([7, 5])).to eq(rook)
+        expect(king.moved?).to be true
+        expect(rook.moved?).to be true
+      end
+    end
+
+    context 'when white queenside castling is executed' do
+      it 'moves the white king from [7, 4] to [7, 2] and the rook from [7, 0] to [7, 3]' do
+        board = Board.new(setup: false)
+        king = King.new(:white, [7, 4])
+        rook = Rook.new(:white, [7, 0])
+
+        board.place_piece(king, [7, 4])
+        board.place_piece(rook, [7, 0])
+
+        board.execute_castling(:white, :queenside)
+
+        expect(board.piece_at([7, 4])).to be_nil
+        expect(board.piece_at([7, 0])).to be_nil
+        expect(board.piece_at([7, 2])).to eq(king)
+        expect(board.piece_at([7, 3])).to eq(rook)
+        expect(king.moved?).to be true
+        expect(rook.moved?).to be true
+      end
+    end
+
+    context 'when black kingside castling is executed' do
+      it 'moves the black king from [0, 4] to [0, 6] and the rook from [0, 7] to [0, 5]' do
+        board = Board.new(setup: false)
+        king = King.new(:black, [0, 4])
+        rook = Rook.new(:black, [0, 7])
+
+        board.place_piece(king, [0, 4])
+        board.place_piece(rook, [0, 7])
+
+        board.execute_castling(:black, :kingside)
+
+        expect(board.piece_at([0, 4])).to be_nil
+        expect(board.piece_at([0, 7])).to be_nil
+        expect(board.piece_at([0, 6])).to eq(king)
+        expect(board.piece_at([0, 5])).to eq(rook)
+        expect(king.moved?).to be true
+        expect(rook.moved?).to be true
+      end
+    end
+
+    context 'when black queenside castling is executed' do
+      it 'moves the black king from [0, 4] to [0, 2] and the rook from [0, 0] to [0, 3]' do
+        board = Board.new(setup: false)
+        king = King.new(:black, [0, 4])
+        rook = Rook.new(:black, [0, 0])
+
+        board.place_piece(king, [0, 4])
+        board.place_piece(rook, [0, 0])
+
+        board.execute_castling(:black, :queenside)
+
+        expect(board.piece_at([0, 4])).to be_nil
+        expect(board.piece_at([0, 0])).to be_nil
+        expect(board.piece_at([0, 2])).to eq(king)
+        expect(board.piece_at([0, 3])).to eq(rook)
+        expect(king.moved?).to be true
+        expect(rook.moved?).to be true
+      end
+    end
+
+    context 'when castling is not allowed' do
+      it 'does not move any pieces if the path is blocked' do
+        board = Board.new(setup: false)
+        king = King.new(:white, [7, 4])
+        rook = Rook.new(:white, [7, 7])
+        blocking_pawn = Pawn.new(:white, [7, 5])
+
+        board.place_piece(king, [7, 4])
+        board.place_piece(rook, [7, 7])
+        board.place_piece(blocking_pawn, [7, 5])
+
+        board.execute_castling(:white, :kingside)
+
+        # King and rook should remain in their original positions
+        expect(board.piece_at([7, 4])).to eq(king)
+        expect(board.piece_at([7, 7])).to eq(rook)
+        expect(board.piece_at([7, 6])).to be_nil
+        expect(king.moved?).to be false
+        expect(rook.moved?).to be false
+      end
+    end
+  end
 end

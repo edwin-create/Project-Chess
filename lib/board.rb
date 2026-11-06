@@ -68,6 +68,7 @@ class Board # rubocop:disable Metrics/ClassLength
     grid[to[0]][to[1]] = piece
     grid[from[0]][from[1]] = nil
     piece.update_position(to)
+    piece.mark_as_moved
   end
 
   def valid_move?(piece, to)
@@ -184,7 +185,89 @@ class Board # rubocop:disable Metrics/ClassLength
       (pieces.map { |piece| piece.position.sum.even? }.uniq.size == 1)
   end
 
+  def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+    return unless castling_allowed?(color, side)
+
+    if color == :white && side == :kingside
+
+      slide_piece([7, 4], [7, 6])
+      slide_piece([7, 7], [7, 5])
+    elsif color == :white && side == :queenside
+      slide_piece([7, 4], [7, 2])
+      slide_piece([7, 0], [7, 3])
+    elsif color == :black && side == :queenside
+      slide_piece([0, 4], [0, 2])
+      slide_piece([0, 0], [0, 3])
+    elsif color == :black && side == :kingside
+      slide_piece([0, 4], [0, 6])
+      slide_piece([0, 7], [0, 5])
+    end
+  end
+
+  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength
+    king = if color == :white
+             piece_at([7, 4])
+           else
+             piece_at([0, 4])
+           end
+
+    return false unless king.is_a?(King) && king.color == color
+    return false if king.moved? || in_check?(color)
+
+    return castling_allowed_queenside_white_king?(color) if color == :white && side == :queenside
+    return castling_allowed_kingside_white_king?(color) if color == :white && side == :kingside
+    return castling_allowed_queenside_black_king?(color) if color == :black && side == :queenside
+    return castling_allowed_kingside_black_king?(color) if color == :black && side == :kingside
+
+    false
+  end
+
   private
+
+  def slide_piece(from, to)
+    piece = piece_at(from)
+    grid[to[0]][to[1]] = piece
+    grid[from[0]][from[1]] = nil
+    piece.update_position(to)
+    piece.mark_as_moved
+  end
+
+  def unmoved_rook?(position, color)
+    rook = piece_at(position)
+    rook.is_a?(Rook) && rook.color == color && !rook.moved?
+  end
+
+  def castling_allowed_queenside_black_king?(color)
+    return false unless unmoved_rook?([0, 0], color)
+    return false unless path_clear?([0, 4], [0, 0])
+    return false if square_attacked?([0, 3], color) || square_attacked?([0, 2], color)
+
+    true
+  end
+
+  def castling_allowed_kingside_black_king?(color)
+    return false unless unmoved_rook?([0, 7], color)
+    return false unless path_clear?([0, 4], [0, 7])
+    return false if square_attacked?([0, 5], color) || square_attacked?([0, 6], color)
+
+    true
+  end
+
+  def castling_allowed_queenside_white_king?(color)
+    return false unless unmoved_rook?([7, 0], color)
+    return false unless path_clear?([7, 4], [7, 0])
+    return false if square_attacked?([7, 3], color) || square_attacked?([7, 2], color)
+
+    true
+  end
+
+  def castling_allowed_kingside_white_king?(color)
+    return false unless unmoved_rook?([7, 7], color)
+    return false unless path_clear?([7, 4], [7, 7])
+    return false if square_attacked?([7, 5], color) || square_attacked?([7, 6], color)
+
+    true
+  end
 
   def any_piece_has_valid_moves?(color) # rubocop:disable Metrics/AbcSize,Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
     (0..7).each do |row|
