@@ -12,6 +12,7 @@ class Board # rubocop:disable Metrics/ClassLength
 
   def initialize(setup: true) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     @grid = Array.new(8) { Array.new(8) }
+    @last_move = nil
     return unless setup
 
     grid[0][0] = Rook.new(:black, [0, 0])
@@ -52,7 +53,7 @@ class Board # rubocop:disable Metrics/ClassLength
     grid[row][col]
   end
 
-  def move_piece(from, to) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
+  def move_piece(from, to) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
     raise ArgumentError, 'Invalid position' unless valid_position?(from) && valid_position?(to)
 
     piece = piece_at(from)
@@ -65,9 +66,15 @@ class Board # rubocop:disable Metrics/ClassLength
 
     raise ArgumentError, 'Invalid move for the piece' unless valid_move?(piece, to)
 
-    grid[to[0]][to[1]] = piece
-    grid[from[0]][from[1]] = nil
-    piece.update_position(to)
+    if en_passant_allowed?(piece, to)
+      execute_en_passant(piece, from, to)
+    else
+      grid[to[0]][to[1]] = piece
+      grid[from[0]][from[1]] = nil
+      @last_move = { piece: piece, from: from, to: to }
+      piece.update_position(to)
+    end
+
     piece.mark_as_moved
   end
 
@@ -128,10 +135,18 @@ class Board # rubocop:disable Metrics/ClassLength
     original_position = piece.position
     destination_piece = piece_at(to)
 
+    #  Ask BEFORE anything is moved. This is an en passant capture only if the
+    # rules allow it, and then the pawn being captured is NOT standing on `to`.
+    en_passant = en_passant_allowed?(piece, to)
+    # Keep a reference to that pawn so we can put it back afterwards.
+    victim = (piece_at(@last_move[:to]) if en_passant)
+
     # Simulate the move
     grid[to[0]][to[1]] = piece
     grid[original_position[0]][original_position[1]] = nil
     piece.update_position(to)
+    # In the pretend position the captured pawn is gone too.
+    remove_en_passant_victim if en_passant
 
     in_check = in_check?(piece.color)
 
@@ -139,6 +154,11 @@ class Board # rubocop:disable Metrics/ClassLength
     grid[original_position[0]][original_position[1]] = piece
     grid[to[0]][to[1]] = destination_piece
     piece.update_position(original_position)
+    # Undo the pretend capture by putting the victim back where it stood.
+    if en_passant
+      victim_row, victim_col = @last_move[:to]
+      grid[victim_row][victim_col] = victim
+    end
 
     in_check
   end
@@ -185,7 +205,7 @@ class Board # rubocop:disable Metrics/ClassLength
       (pieces.map { |piece| piece.position.sum.even? }.uniq.size == 1)
   end
 
-  def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+  def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
     return unless castling_allowed?(color, side)
 
     if color == :white && side == :kingside
@@ -204,7 +224,7 @@ class Board # rubocop:disable Metrics/ClassLength
     end
   end
 
-  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength
+  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
     king = if color == :white
              piece_at([7, 4])
            else
@@ -222,7 +242,70 @@ class Board # rubocop:disable Metrics/ClassLength
     false
   end
 
+  def execute_en_passant(piece, from, to)
+    # The victim stands where its double step ended
+    remove_en_passant_victim # take the victim off the board
+
+    grid[to[0]][to[1]] = piece # move the capturing pawn
+    grid[from[0]][from[1]] = nil
+    @last_move = { piece: piece, from: from, to: to }
+    piece.update_position(to)
+  end
+
   private
+
+  def remove_en_passant_victim
+    victim_row, victim_col = @last_move[:to]
+    grid[victim_row][victim_col] = nil
+  end
+
+  def en_passant_allowed?(piece, to)
+    return false unless piece.is_a?(Pawn)
+    return false unless last_move_was_double_step?
+    return false unless last_moved_pawn_is_an_enemy_beside?(piece)
+
+    # The attacker must be moving to the exact square the victim skipped over
+    to == skipped_square
+  end
+
+  def last_moved_pawn_is_an_enemy_beside?(piece)
+    victim_piece = @last_move[:piece]
+    return false unless victim_piece
+
+    victim_row, victim_col = @last_move[:to]
+    attacker_row, attacker_col = piece.position # piece.position returns [row, col]
+
+    # The victim must be an enemy, not a friendly piece.
+    return false if victim_piece.color == piece.color
+
+    # The victim must be on the same row as the attacker
+    return false unless victim_row == attacker_row
+
+    # The victim must be directly beside the attacking pawn (one column away)
+    return false unless (victim_col - attacker_col).abs == 1
+
+    true
+  end
+
+  def skipped_square
+    victim_start_row = @last_move[:from][0]
+    victim_row = @last_move[:to][0]
+    victim_col = @last_move[:to][1]
+
+    # The square the victim skipped over is halfway between start and landing
+    skipped_row = (victim_start_row + victim_row) / 2
+    [skipped_row, victim_col]
+  end
+
+  def last_move_was_double_step?
+    return false unless @last_move
+
+    piece = @last_move[:piece]
+    from_row = @last_move[:from][0]
+    to_row = @last_move[:to][0]
+
+    piece.is_a?(Pawn) && (to_row - from_row).abs == 2
+  end
 
   def slide_piece(from, to)
     piece = piece_at(from)
@@ -338,7 +421,7 @@ class Board # rubocop:disable Metrics/ClassLength
     destination_piece = piece_at(to)
 
     if destination_piece.nil?
-      pawn_can_advance?(piece, to)
+      pawn_can_advance?(piece, to) || en_passant_allowed?(piece, to)
     else
       pawn_can_capture?(piece, to, destination_piece)
     end

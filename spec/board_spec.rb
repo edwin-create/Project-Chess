@@ -994,4 +994,130 @@ describe Board do # rubocop:disable Metrics/BlockLength
       end
     end
   end
+  describe '#execute_en_passant' do
+    context 'when a white pawn has an enemy pawn that just advanced two squares beside it' do
+      let(:board) { Board.new(setup: false) }
+      let(:capturer) { Pawn.new(:white, [3, 4]) }
+      let(:victim) { Pawn.new(:black, [1, 3]) }
+
+      before do
+        board.place_piece(King.new(:white, [7, 7]), [7, 7])
+        board.place_piece(King.new(:black, [0, 7]), [0, 7])
+        board.place_piece(capturer, [3, 4])
+        board.place_piece(victim, [1, 3])
+      end
+
+      it 'allows the capture on the very next move' do
+        board.move_piece([1, 3], [3, 3]) # Victim makes double step
+
+        expect(board.valid_move?(capturer, [2, 3])).to be true
+      end
+
+      it 'removes the captured pawn from the board' do
+        board.move_piece([1, 3], [3, 3])
+        board.move_piece([3, 4], [2, 3]) # Capturer executes en passant
+
+        expect(board.piece_at([3, 3])).to be_nil
+      end
+
+      it 'puts the capturing pawn on the square the enemy pawn skipped' do
+        board.move_piece([1, 3], [3, 3])
+        board.move_piece([3, 4], [2, 3])
+
+        expect(board.piece_at([2, 3])).to be(capturer)
+      end
+
+      it 'is no longer allowed once any other move has been played' do
+        board.move_piece([1, 3], [3, 3])
+        board.move_piece([0, 7], [0, 6]) # Some unrelated move
+
+        expect(board.valid_move?(capturer, [2, 3])).to be false
+      end
+
+      it 'is not allowed when the enemy pawn arrived by two single steps' do
+        middle = [2, 3]
+        board.move_piece([1, 3], middle)    # First single step
+        board.move_piece([0, 7], [0, 6])    # Unrelated move
+        board.move_piece(middle, [3, 3])    # Second single step
+
+        expect(board.valid_move?(capturer, [2, 3])).to be false
+      end
+    end
+
+    context 'when a black pawn has an enemy pawn that just advanced two squares beside it' do
+      let(:board) { Board.new(setup: false) }
+      let(:capturer) { Pawn.new(:black, [4, 4]) }
+      let(:victim) { Pawn.new(:white, [6, 3]) }
+
+      before do
+        board.place_piece(King.new(:white, [7, 7]), [7, 7])
+        board.place_piece(King.new(:black, [0, 7]), [0, 7])
+        board.place_piece(capturer, [4, 4])
+        board.place_piece(victim, [6, 3])
+      end
+
+      it 'allows the black capture on the very next move' do
+        board.move_piece([6, 3], [4, 3]) # White victim makes double step
+
+        expect(board.valid_move?(capturer, [5, 3])).to be true
+      end
+
+      it 'removes the captured white pawn and places the black pawn correctly' do
+        board.move_piece([6, 3], [4, 3])
+        board.move_piece([4, 4], [5, 3])
+
+        expect(board.piece_at([4, 3])).to be_nil
+        expect(board.piece_at([5, 3])).to be(capturer)
+      end
+    end
+
+    it 'is not allowed when it would expose the capturing side\'s king to check' do
+      board = Board.new(setup: false)
+      capturer = Pawn.new(:white, [3, 4])
+
+      board.place_piece(King.new(:white, [3, 0]), [3, 0]) # King on same rank, vulnerable to rook
+      board.place_piece(King.new(:black, [0, 7]), [0, 7])
+      board.place_piece(Rook.new(:black, [3, 7]), [3, 7]) # Rook lining up on the king if pawn leaves
+      board.place_piece(capturer, [3, 4])
+      board.place_piece(Pawn.new(:black, [1, 3]), [1, 3])
+
+      board.move_piece([1, 3], [3, 3])
+
+      # Moving diagonally here unblocks the rook and exposes the king to check
+      expect(board.valid_move?(capturer, [2, 3])).to be false
+    end
+    it 'is not allowed when the white pawn that just advanced two squares is a friendly pawn' do
+      board = Board.new(setup: false)
+      capturer = Pawn.new(:white, [4, 4])
+      friendly_pawn = Pawn.new(:white, [6, 3])
+
+      board.place_piece(King.new(:white, [7, 7]), [7, 7])
+      board.place_piece(King.new(:black, [0, 7]), [0, 7])
+      board.place_piece(capturer, [4, 4])
+      board.place_piece(friendly_pawn, [6, 3])
+
+      # Friendly white pawn makes a double step
+      board.move_piece([6, 3], [4, 3])
+
+      # Capturing a friendly pawn en passant must be blocked
+      expect(board.valid_move?(capturer, [5, 3])).to be false
+    end
+
+    it 'is not allowed when the black pawn that just advanced two squares is a friendly pawn' do
+      board = Board.new(setup: false)
+      capturer = Pawn.new(:black, [3, 4])
+      friendly_pawn = Pawn.new(:black, [1, 3])
+
+      board.place_piece(King.new(:white, [7, 7]), [7, 7])
+      board.place_piece(King.new(:black, [0, 7]), [0, 7])
+      board.place_piece(capturer, [3, 4])
+      board.place_piece(friendly_pawn, [1, 3])
+
+      # Friendly black pawn makes a double step
+      board.move_piece([1, 3], [3, 3])
+
+      # Capturing a friendly pawn en passant must be blocked
+      expect(board.valid_move?(capturer, [2, 3])).to be false
+    end
+  end
 end
