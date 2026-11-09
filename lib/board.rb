@@ -224,24 +224,6 @@ class Board # rubocop:disable Metrics/ClassLength
     end
   end
 
-  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
-    king = if color == :white
-             piece_at([7, 4])
-           else
-             piece_at([0, 4])
-           end
-
-    return false unless king.is_a?(King) && king.color == color
-    return false if king.moved? || in_check?(color)
-
-    return castling_allowed_queenside_white_king?(color) if color == :white && side == :queenside
-    return castling_allowed_kingside_white_king?(color) if color == :white && side == :kingside
-    return castling_allowed_queenside_black_king?(color) if color == :black && side == :queenside
-    return castling_allowed_kingside_black_king?(color) if color == :black && side == :kingside
-
-    false
-  end
-
   def execute_en_passant(piece, from, to)
     # The victim stands where its double step ended
     remove_en_passant_victim # take the victim off the board
@@ -252,7 +234,46 @@ class Board # rubocop:disable Metrics/ClassLength
     piece.update_position(to)
   end
 
+  def execute_promotion(piece, promotion_type = :queen) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
+    raise ArgumentError, 'Invalid promotion' unless promotion_allowed?(piece)
+
+    # Choose the new piece using if/else
+    case promotion_type
+    when :queen
+      new_piece = Queen.new(piece.color, piece.position)
+    when :rook
+      new_piece = Rook.new(piece.color, piece.position)
+    when :bishop
+      new_piece = Bishop.new(piece.color, piece.position)
+    when :knight
+      new_piece = Knight.new(piece.color, piece.position)
+    else
+      raise ArgumentError, 'Invalid promotion piece'
+    end
+
+    # Clear the square / remove the pawn
+    row, col = piece.position
+    grid[row][col] = nil
+
+    # Place the new piece on the board
+    place_piece(new_piece, piece.position)
+  end
+
   private
+
+  def promotion_allowed?(piece)
+    return false unless piece.is_a?(Pawn)
+
+    row, _col = piece.position # using _col signals to RuboCop that we don't need the column value
+
+    if piece.color == :black
+
+      return false unless row == 7
+    else
+      return false unless row.zero?
+    end
+    true
+  end
 
   def remove_en_passant_victim
     victim_row, victim_col = @last_move[:to]
@@ -305,6 +326,24 @@ class Board # rubocop:disable Metrics/ClassLength
     to_row = @last_move[:to][0]
 
     piece.is_a?(Pawn) && (to_row - from_row).abs == 2
+  end
+
+  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
+    king = if color == :white
+             piece_at([7, 4])
+           else
+             piece_at([0, 4])
+           end
+
+    return false unless king.is_a?(King) && king.color == color
+    return false if king.moved? || in_check?(color)
+
+    return castling_allowed_queenside_white_king?(color) if color == :white && side == :queenside
+    return castling_allowed_kingside_white_king?(color) if color == :white && side == :kingside
+    return castling_allowed_queenside_black_king?(color) if color == :black && side == :queenside
+    return castling_allowed_kingside_black_king?(color) if color == :black && side == :kingside
+
+    false
   end
 
   def slide_piece(from, to)

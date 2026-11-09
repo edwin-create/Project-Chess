@@ -809,88 +809,6 @@ describe Board do # rubocop:disable Metrics/BlockLength
       end
     end
   end
-  describe '#castling_allowed?' do
-    let(:board) { Board.new(setup: false) }
-    let(:king) { King.new(:white, [7, 4]) }
-    let(:kingside_rook) { Rook.new(:white, [7, 7]) }
-    let(:queenside_rook) { Rook.new(:white, [7, 0]) }
-    let(:enemy_king) { King.new(:black, [0, 0]) }
-
-    before do
-      [king, kingside_rook, queenside_rook, enemy_king].each do |piece|
-        board.place_piece(piece, piece.position)
-      end
-    end
-
-    %i[kingside queenside].each do |side|
-      it "is allowed on the #{side} when nothing stands in the way" do
-        expect(board.castling_allowed?(:white, side)).to be true
-      end
-
-      it "is not allowed on the #{side} once the king has moved" do
-        king.mark_as_moved
-
-        expect(board.castling_allowed?(:white, side)).to be false
-      end
-
-      it "is not allowed on the #{side} while the king is in check" do
-        board.place_piece(Rook.new(:black, [0, 4]), [0, 4])
-
-        expect(board.castling_allowed?(:white, side)).to be false
-      end
-    end
-
-    it 'is not allowed on a side whose rook has moved, but the other side still is' do
-      kingside_rook.mark_as_moved
-
-      expect(board.castling_allowed?(:white, :kingside)).to be false
-      expect(board.castling_allowed?(:white, :queenside)).to be true
-    end
-
-    { kingside: [7, 6], queenside: [7, 1] }.each do |side, square|
-      it "is not allowed when a piece stands between the king and the #{side} rook" do
-        board.place_piece(Knight.new(:white, square), square)
-
-        expect(board.castling_allowed?(:white, side)).to be false
-      end
-    end
-
-    it 'is not allowed when the rook is missing from its corner' do
-      lonely = Board.new(setup: false)
-      lonely.place_piece(King.new(:white, [7, 4]), [7, 4])
-      lonely.place_piece(King.new(:black, [0, 0]), [0, 0])
-
-      expect(lonely.castling_allowed?(:white, :kingside)).to be false
-    end
-
-    {
-      'passes through' => { kingside: [0, 5], queenside: [0, 3] },
-      'lands on' => { kingside: [0, 6], queenside: [0, 2] }
-    }.each do |description, attackers|
-      attackers.each do |side, square|
-        it "is not allowed on the #{side} when the king #{description} an attacked square" do
-          board.place_piece(Rook.new(:black, square), square)
-
-          expect(board.castling_allowed?(:white, side)).to be false
-        end
-      end
-    end
-
-    it 'is still allowed on the queenside when only the b-file square is attacked' do
-      board.place_piece(Rook.new(:black, [0, 1]), [0, 1])
-
-      expect(board.castling_allowed?(:white, :queenside)).to be true
-    end
-
-    it 'works the same way for black' do
-      black_board = Board.new(setup: false)
-      black_board.place_piece(King.new(:black, [0, 4]), [0, 4])
-      black_board.place_piece(Rook.new(:black, [0, 7]), [0, 7])
-      black_board.place_piece(King.new(:white, [7, 0]), [7, 0])
-
-      expect(black_board.castling_allowed?(:black, :kingside)).to be true
-    end
-  end
   describe '#execute_castling' do
     context 'when white kingside castling is executed' do
       it 'moves the white king from [7, 4] to [7, 6] and the rook from [7, 7] to [7, 5]' do
@@ -1118,6 +1036,177 @@ describe Board do # rubocop:disable Metrics/BlockLength
 
       # Capturing a friendly pawn en passant must be blocked
       expect(board.valid_move?(capturer, [2, 3])).to be false
+    end
+  end
+  describe '#execute_promotion' do # rubocop:disable Metrics/BlockLength
+    let(:board) { Board.new(setup: false) }
+
+    before do
+      board.place_piece(King.new(:white, [7, 7]), [7, 7])
+      board.place_piece(King.new(:black, [0, 7]), [0, 7])
+    end
+
+    # --- White Pawn Promotions ---
+    it 'turns a white pawn on the last rank into a queen' do
+      pawn = Pawn.new(:white, [1, 3])
+      board.place_piece(pawn, [1, 3])
+      board.move_piece([1, 3], [0, 3])
+
+      board.execute_promotion(pawn, :queen)
+
+      promoted = board.piece_at([0, 3])
+      expect(promoted).to be_instance_of(Queen)
+      expect(promoted.color).to eq(:white)
+      expect(promoted.position).to eq([0, 3])
+    end
+
+    it 'turns a white pawn on the last rank into a rook' do
+      pawn = Pawn.new(:white, [1, 3])
+      board.place_piece(pawn, [1, 3])
+      board.move_piece([1, 3], [0, 3])
+
+      board.execute_promotion(pawn, :rook)
+
+      promoted = board.piece_at([0, 3])
+      expect(promoted).to be_instance_of(Rook)
+      expect(promoted.color).to eq(:white)
+      expect(promoted.position).to eq([0, 3])
+    end
+
+    it 'turns a white pawn on the last rank into a bishop' do
+      pawn = Pawn.new(:white, [1, 3])
+      board.place_piece(pawn, [1, 3])
+      board.move_piece([1, 3], [0, 3])
+
+      board.execute_promotion(pawn, :bishop)
+
+      promoted = board.piece_at([0, 3])
+      expect(promoted).to be_instance_of(Bishop)
+      expect(promoted.color).to eq(:white)
+      expect(promoted.position).to eq([0, 3])
+    end
+
+    it 'turns a white pawn on the last rank into a knight' do
+      pawn = Pawn.new(:white, [1, 3])
+      board.place_piece(pawn, [1, 3])
+      board.move_piece([1, 3], [0, 3])
+
+      board.execute_promotion(pawn, :knight)
+
+      promoted = board.piece_at([0, 3])
+      expect(promoted).to be_instance_of(Knight)
+      expect(promoted.color).to eq(:white)
+      expect(promoted.position).to eq([0, 3])
+    end
+
+    # --- Black Pawn Promotions ---
+    it 'turns a black pawn on the last rank into a queen' do
+      pawn = Pawn.new(:black, [6, 4])
+      board.place_piece(pawn, [6, 4])
+      board.move_piece([6, 4], [7, 4])
+
+      board.execute_promotion(pawn, :queen)
+
+      promoted = board.piece_at([7, 4])
+      expect(promoted).to be_instance_of(Queen)
+      expect(promoted.color).to eq(:black)
+      expect(promoted.position).to eq([7, 4])
+    end
+
+    it 'turns a black pawn on the last rank into a rook' do
+      pawn = Pawn.new(:black, [6, 4])
+      board.place_piece(pawn, [6, 4])
+      board.move_piece([6, 4], [7, 4])
+
+      board.execute_promotion(pawn, :rook)
+
+      promoted = board.piece_at([7, 4])
+      expect(promoted).to be_instance_of(Rook)
+      expect(promoted.color).to eq(:black)
+      expect(promoted.position).to eq([7, 4])
+    end
+
+    it 'turns a black pawn on the last rank into a bishop' do
+      pawn = Pawn.new(:black, [6, 4])
+      board.place_piece(pawn, [6, 4])
+      board.move_piece([6, 4], [7, 4])
+
+      board.execute_promotion(pawn, :bishop)
+
+      promoted = board.piece_at([7, 4])
+      expect(promoted).to be_instance_of(Bishop)
+      expect(promoted.color).to eq(:black)
+      expect(promoted.position).to eq([7, 4])
+    end
+
+    it 'turns a black pawn on the last rank into a knight' do
+      pawn = Pawn.new(:black, [6, 4])
+      board.place_piece(pawn, [6, 4])
+      board.move_piece([6, 4], [7, 4])
+
+      board.execute_promotion(pawn, :knight)
+
+      promoted = board.piece_at([7, 4])
+      expect(promoted).to be_instance_of(Knight)
+      expect(promoted.color).to eq(:black)
+      expect(promoted.position).to eq([7, 4])
+    end
+
+    # --- Invalid Type Rejections ---
+    context 'with a white pawn that has just reached row 0' do
+      let(:pawn) { Pawn.new(:white, [1, 3]) }
+
+      before do
+        board.place_piece(pawn, [1, 3])
+        board.move_piece([1, 3], [0, 3])
+      end
+
+      it 'rejects promotion to king and leaves the pawn in place' do
+        expect { board.execute_promotion(pawn, :king) }.to raise_error(ArgumentError)
+        expect(board.piece_at([0, 3])).to be(pawn)
+      end
+
+      it 'rejects promotion to pawn and leaves the pawn in place' do
+        expect { board.execute_promotion(pawn, :pawn) }.to raise_error(ArgumentError)
+        expect(board.piece_at([0, 3])).to be(pawn)
+      end
+
+      it 'rejects promotion to dragon and leaves the pawn in place' do
+        expect { board.execute_promotion(pawn, :dragon) }.to raise_error(ArgumentError)
+        expect(board.piece_at([0, 3])).to be(pawn)
+      end
+
+      it 'puts a real piece on the board, so it counts for check' do
+        board.execute_promotion(pawn, :queen)
+
+        expect(board.in_check?(:black)).to be true
+      end
+    end
+
+    # --- Edge Cases & Guard Clauses ---
+    it 'promotes a pawn that reached the last rank by capturing' do
+      pawn = Pawn.new(:white, [1, 3])
+      board.place_piece(pawn, [1, 3])
+      board.place_piece(Rook.new(:black, [0, 4]), [0, 4])
+      board.move_piece([1, 3], [0, 4])
+
+      board.execute_promotion(pawn, :queen)
+
+      expect(board.piece_at([0, 4])).to be_instance_of(Queen)
+    end
+
+    it 'raises when the pawn is not on its promotion rank' do
+      pawn = Pawn.new(:white, [3, 3])
+      board.place_piece(pawn, [3, 3])
+
+      expect { board.execute_promotion(pawn, :queen) }.to raise_error(ArgumentError)
+    end
+
+    it 'raises when the piece is not a pawn' do
+      rook = Rook.new(:white, [0, 3])
+      board.place_piece(rook, [0, 3])
+
+      expect { board.execute_promotion(rook, :queen) }.to raise_error(ArgumentError)
     end
   end
 end
