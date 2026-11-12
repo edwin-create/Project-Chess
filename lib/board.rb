@@ -53,8 +53,11 @@ class Board # rubocop:disable Metrics/ClassLength
     grid[row][col]
   end
 
-  def move_piece(from, to) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+  PROMOTION_TYPES = %i[queen rook bishop knight].freeze
+
+  def move_piece(from, to) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
     raise ArgumentError, 'Invalid position' unless valid_position?(from) && valid_position?(to)
+    raise ArgumentError, 'Invalid promotion piece' unless PROMOTION_TYPES.include?(promotion)
 
     piece = piece_at(from)
     raise ArgumentError, 'No piece at starting position' if piece.nil?
@@ -68,6 +71,8 @@ class Board # rubocop:disable Metrics/ClassLength
 
     if en_passant_allowed?(piece, to)
       execute_en_passant(piece, from, to)
+    elsif castling_allowed?(color, side)
+      execute_castling(color, side)
     else
       grid[to[0]][to[1]] = piece
       grid[from[0]][from[1]] = nil
@@ -76,6 +81,7 @@ class Board # rubocop:disable Metrics/ClassLength
     end
 
     piece.mark_as_moved
+    execute_promotion(piece, promotion) if promotion_allowed?(piece)
   end
 
   def valid_move?(piece, to)
@@ -131,7 +137,7 @@ class Board # rubocop:disable Metrics/ClassLength
     square_attacked?(king_position, color)
   end
 
-  def leaves_the_king_in_check?(piece, to) # rubocop:disable Metrics/AbcSize
+  def leaves_the_king_in_check?(piece, to) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     original_position = piece.position
     destination_piece = piece_at(to)
 
@@ -206,7 +212,7 @@ class Board # rubocop:disable Metrics/ClassLength
   end
 
   def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
-    return unless castling_allowed?(color, side)
+    raise ArgumentError, 'Castling not allowed' unless castling_allowed?(color, side)
 
     if color == :white && side == :kingside
 
@@ -225,6 +231,8 @@ class Board # rubocop:disable Metrics/ClassLength
   end
 
   def execute_en_passant(piece, from, to)
+    raise ArgumentError, 'En passant not allowed' unless en_passant_allowed?(piece, to)
+
     # The victim stands where its double step ended
     remove_en_passant_victim # take the victim off the board
 
