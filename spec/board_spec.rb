@@ -891,24 +891,26 @@ describe Board do # rubocop:disable Metrics/BlockLength
     end
 
     context 'when castling is not allowed' do
-      it 'raises an error and moves nothing if the path is blocked' do
-        board = Board.new(setup: false)
-        king = King.new(:white, [7, 4])
-        rook = Rook.new(:white, [7, 7])
-        blocker = Knight.new(:white, [7, 5])
+      context 'when castling is not allowed' do
+        it 'raises and moves nothing if the path is blocked' do
+          board = Board.new(setup: false)
+          king = King.new(:white, [7, 4])
+          rook = Rook.new(:white, [7, 7])
+          blocking_pawn = Pawn.new(:white, [7, 5])
 
-        board.place_piece(king, [7, 4])
-        board.place_piece(rook, [7, 7])
-        board.place_piece(blocker, [7, 5])
+          board.place_piece(king, [7, 4])
+          board.place_piece(rook, [7, 7])
+          board.place_piece(blocking_pawn, [7, 5])
 
-        expect { board.execute_castling(:white, :kingside) }.to raise_error(ArgumentError)
+          expect { board.execute_castling(:white, :kingside) }.to raise_error(ArgumentError)
 
-        # King and rook should remain exactly where they were
-        expect(board.piece_at([7, 4])).to be(king)
-        expect(board.piece_at([7, 7])).to be(rook)
-        expect(board.piece_at([7, 6])).to be_nil
-        expect(king.moved?).to be false
-        expect(rook.moved?).to be false
+          # King and rook should remain in their original positions
+          expect(board.piece_at([7, 4])).to eq(king)
+          expect(board.piece_at([7, 7])).to eq(rook)
+          expect(board.piece_at([7, 6])).to be_nil
+          expect(king.moved?).to be false
+          expect(rook.moved?).to be false
+        end
       end
     end
   end
