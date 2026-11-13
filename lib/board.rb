@@ -206,7 +206,7 @@ class Board # rubocop:disable Metrics/ClassLength
   end
 
   def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
-    return unless castling_allowed?(color, side)
+    raise ArgumentError, 'Castling not allowed' unless castling_allowed?(color, side)
 
     if color == :white && side == :kingside
 
