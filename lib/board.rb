@@ -53,7 +53,7 @@ class Board # rubocop:disable Metrics/ClassLength
     grid[row][col]
   end
 
-  def move_piece(from, to) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+  def move_piece(from, to) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity,Metrics/MethodLength
     raise ArgumentError, 'Invalid position' unless valid_position?(from) && valid_position?(to)
 
     piece = piece_at(from)
@@ -205,11 +205,15 @@ class Board # rubocop:disable Metrics/ClassLength
       (pieces.map { |piece| piece.position.sum.even? }.uniq.size == 1)
   end
 
-  def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
+  def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
     raise ArgumentError, 'Castling not allowed' unless castling_allowed?(color, side)
 
-    if color == :white && side == :kingside
+    # 1. Capture the start position and find the king upfront
+    start_pos = color == :white ? [7, 4] : [0, 4]
+    king = piece_at(start_pos)
 
+    # 2. Your unchanged if/elsif chain (which moves the pieces and updates king.position)
+    if color == :white && side == :kingside
       slide_piece([7, 4], [7, 6])
       slide_piece([7, 7], [7, 5])
     elsif color == :white && side == :queenside
@@ -222,9 +226,15 @@ class Board # rubocop:disable Metrics/ClassLength
       slide_piece([0, 4], [0, 6])
       slide_piece([0, 7], [0, 5])
     end
+
+    # 3. Record the move
+    # start_pos gives us 'from', and king.position now holds the new 'to' square!
+    @last_move = { piece: king, from: start_pos, to: king.position }
   end
 
   def execute_en_passant(piece, from, to)
+    raise ArgumentError, 'En passant not allowed' unless en_passant_allowed?(piece, to)
+
     # The victim stands where its double step ended
     remove_en_passant_victim # take the victim off the board
 
@@ -259,7 +269,23 @@ class Board # rubocop:disable Metrics/ClassLength
     place_piece(new_piece, piece.position)
   end
 
-  private
+  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
+    king = if color == :white
+             piece_at([7, 4])
+           else
+             piece_at([0, 4])
+           end
+
+    return false unless king.is_a?(King) && king.color == color
+    return false if king.moved? || in_check?(color)
+
+    return castling_allowed_queenside_white_king?(color) if color == :white && side == :queenside
+    return castling_allowed_kingside_white_king?(color) if color == :white && side == :kingside
+    return castling_allowed_queenside_black_king?(color) if color == :black && side == :queenside
+    return castling_allowed_kingside_black_king?(color) if color == :black && side == :kingside
+
+    false
+  end
 
   def promotion_allowed?(piece)
     return false unless piece.is_a?(Pawn)
@@ -274,6 +300,8 @@ class Board # rubocop:disable Metrics/ClassLength
     end
     true
   end
+
+  private
 
   def remove_en_passant_victim
     victim_row, victim_col = @last_move[:to]
@@ -326,24 +354,6 @@ class Board # rubocop:disable Metrics/ClassLength
     to_row = @last_move[:to][0]
 
     piece.is_a?(Pawn) && (to_row - from_row).abs == 2
-  end
-
-  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
-    king = if color == :white
-             piece_at([7, 4])
-           else
-             piece_at([0, 4])
-           end
-
-    return false unless king.is_a?(King) && king.color == color
-    return false if king.moved? || in_check?(color)
-
-    return castling_allowed_queenside_white_king?(color) if color == :white && side == :queenside
-    return castling_allowed_kingside_white_king?(color) if color == :white && side == :kingside
-    return castling_allowed_queenside_black_king?(color) if color == :black && side == :queenside
-    return castling_allowed_kingside_black_king?(color) if color == :black && side == :kingside
-
-    false
   end
 
   def slide_piece(from, to)
@@ -413,11 +423,11 @@ class Board # rubocop:disable Metrics/ClassLength
   end
 
   def can_save_checkmate_by_blocking_or_capture?(color) # rubocop:disable Metrics/CyclomaticComplexity,Metrics/AbcSize,Metrics/MethodLength,Metrics/PerceivedComplexity
-    # Implementation for checking if a checkmate can be saved by blocking
+    # Implementation for checking if a checkmate can be saved by blocking or capturing attacker
     (0..7).each do |row|
       (0..7).each do |col|
         piece = piece_at([row, col])
-        next if piece.nil? || piece.color != color || piece.is_a?(King)
+        next if piece.nil? || piece.color != color
 
         if piece.is_a?(Pawn)
           (piece.pawn_capture_moves + piece.valid_moves).each do |move|
