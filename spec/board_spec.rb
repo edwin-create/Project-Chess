@@ -116,6 +116,8 @@ describe Board do # rubocop:disable Metrics/BlockLength
     end
   end
   describe '#move_piece' do # rubocop:disable Metrics/BlockLength
+    let(:board) { Board.new(setup: false) }
+
     it 'moves a piece from one position to another' do
       board = Board.new
       piece = board.piece_at([0, 1]) # Black knight at [0, 1]
@@ -172,6 +174,26 @@ describe Board do # rubocop:disable Metrics/BlockLength
       expect(board.piece_at([1, 0])).to equal(blocking_piece)
       expect(board.piece_at([3, 0])).to be_nil
       expect(rook.position).to eq([0, 0])
+    end
+    it 'successfully castles both the king and the rook on a valid kingside castling move' do
+      # Setup initial king and rook positions for white kingside castling
+      # (Assuming your board setup places pieces on these squares and clears path between them)
+      king = King.new(:white, [7, 4])
+      rook = Rook.new(:white, [7, 7])
+
+      board.grid[7][4] = king
+      board.grid[7][7] = rook
+
+      # Execute kingside castling via standard move_piece API
+      board.move_piece([7, 4], [7, 6])
+
+      # Verify king moved to [7, 6] and rook moved to [7, 5]
+      expect(board.piece_at([7, 6])).to eq(king)
+      expect(board.piece_at([7, 5])).to eq(rook)
+
+      # Verify original squares are cleared
+      expect(board.piece_at([7, 4])).to be_nil
+      expect(board.piece_at([7, 7])).to be_nil
     end
   end
   describe '#valid_move?' do

@@ -8,7 +8,7 @@ require_relative 'queen'
 require_relative 'king'
 # Handles the grid, piece placement, and move application.
 class Board # rubocop:disable Metrics/ClassLength
-  attr_reader :grid
+  attr_reader :grid, :last_move
 
   def initialize(setup: true) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     @grid = Array.new(8) { Array.new(8) }
@@ -62,6 +62,11 @@ class Board # rubocop:disable Metrics/ClassLength
     destination_piece = piece_at(to)
     if destination_piece && destination_piece.color == piece.color
       raise ArgumentError, 'Cannot move to a position occupied by a friendly piece'
+    end
+
+    if castling_attempt?(piece, from, to)
+      handle_castling_attempt(piece, from, to)
+      return
     end
 
     raise ArgumentError, 'Invalid move for the piece' unless valid_move?(piece, to)
@@ -131,7 +136,7 @@ class Board # rubocop:disable Metrics/ClassLength
     square_attacked?(king_position, color)
   end
 
-  def leaves_the_king_in_check?(piece, to) # rubocop:disable Metrics/AbcSize
+  def leaves_the_king_in_check?(piece, to) # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
     original_position = piece.position
     destination_piece = piece_at(to)
 
@@ -205,14 +210,14 @@ class Board # rubocop:disable Metrics/ClassLength
       (pieces.map { |piece| piece.position.sum.even? }.uniq.size == 1)
   end
 
-  def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength
+  def execute_castling(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength,Metrics/PerceivedComplexity
     raise ArgumentError, 'Castling not allowed' unless castling_allowed?(color, side)
 
     # 1. Capture the start position and find the king upfront
     start_pos = color == :white ? [7, 4] : [0, 4]
     king = piece_at(start_pos)
 
-    # 2. Your unchanged if/elsif chain (which moves the pieces and updates king.position)
+    # 2. if/elsif chain, which moves the pieces and updates king.position
     if color == :white && side == :kingside
       slide_piece([7, 4], [7, 6])
       slide_piece([7, 7], [7, 5])
@@ -267,24 +272,6 @@ class Board # rubocop:disable Metrics/ClassLength
 
     # Place the new piece on the board
     place_piece(new_piece, piece.position)
-  end
-
-  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
-    king = if color == :white
-             piece_at([7, 4])
-           else
-             piece_at([0, 4])
-           end
-
-    return false unless king.is_a?(King) && king.color == color
-    return false if king.moved? || in_check?(color)
-
-    return castling_allowed_queenside_white_king?(color) if color == :white && side == :queenside
-    return castling_allowed_kingside_white_king?(color) if color == :white && side == :kingside
-    return castling_allowed_queenside_black_king?(color) if color == :black && side == :queenside
-    return castling_allowed_kingside_black_king?(color) if color == :black && side == :kingside
-
-    false
   end
 
   def promotion_allowed?(piece)
@@ -527,5 +514,32 @@ class Board # rubocop:disable Metrics/ClassLength
     return false if position.length != 2
 
     position.all? { |coord| coord.is_a?(Integer) && coord.between?(0, 7) }
+  end
+
+  def castling_attempt?(piece, from, to)
+    piece.is_a?(King) && from[0] == to[0] && (to[1] - from[1]).abs == 2
+  end
+
+  def handle_castling_attempt(piece, from, to)
+    side = to[1] > from[1] ? :kingside : :queenside
+    execute_castling(piece.color, side)
+  end
+
+  def castling_allowed?(color, side) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity,Metrics/MethodLength,Metrics/PerceivedComplexity
+    king = if color == :white
+             piece_at([7, 4])
+           else
+             piece_at([0, 4])
+           end
+
+    return false unless king.is_a?(King) && king.color == color
+    return false if king.moved? || in_check?(color)
+
+    return castling_allowed_queenside_white_king?(color) if color == :white && side == :queenside
+    return castling_allowed_kingside_white_king?(color) if color == :white && side == :kingside
+    return castling_allowed_queenside_black_king?(color) if color == :black && side == :queenside
+    return castling_allowed_kingside_black_king?(color) if color == :black && side == :kingside
+
+    false
   end
 end
