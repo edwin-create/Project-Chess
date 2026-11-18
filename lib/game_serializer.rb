@@ -17,6 +17,10 @@ class GameSerializer
     filename # Return the filename so the UI/caller knows what was saved
   end
 
+  def self.load(filename)
+    Marshal.load(File.read(filename)) # rubocop:disable Security/MarshalLoad
+  end
+
   private
 
   def generate_filename

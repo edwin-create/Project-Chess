@@ -15,13 +15,6 @@ RSpec.describe GameSerializer do
     expect(File.exist?(filename)).to be true
   end
 
-  it 'saves data that can be loaded back into a Game object' do
-    filename = serializer.save
-    loaded_game = Marshal.load(File.read(filename))
-
-    expect(loaded_game).to be_a(Game)
-  end
-
   it 'avoids overwriting by using a suffix on collision' do
     fixed_time = Time.now
     allow(Time).to receive(:now).and_return(fixed_time)
@@ -32,5 +25,16 @@ RSpec.describe GameSerializer do
     expect(file1).not_to eq(file2)
     expect(File.exist?(file1)).to be true
     expect(File.exist?(file2)).to be true
+  end
+  it 'restores the current players turn' do
+    # Use the public interface to make a valid move.
+    # This automatically triggers the turn change to :black.
+    game.switch_turn
+
+    filename = serializer.save
+    loaded_game = GameSerializer.load(filename)
+
+    expect(loaded_game).to be_a(Game)
+    expect(loaded_game.current_player.color).to eq(:black)
   end
 end

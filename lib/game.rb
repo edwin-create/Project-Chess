@@ -17,15 +17,6 @@ class Game
     @current_player = @white_player
   end
 
-  # Turn managament
-  def switch_turn
-    @current_player = if @current_player == @white_player
-                        @black_player
-                      else
-                        @white_player
-                      end
-  end
-
   # Overall game flow
   def play # rubocop:disable Metrics/MethodLength,Metrics/AbcSize
     display = Display.new
@@ -65,6 +56,15 @@ class Game
         puts "\nInvalid move: #{e.message}. Please try again.\n"
       end
     end
+  end
+
+  # Turn managament
+  def switch_turn
+    @current_player = if @current_player == @white_player
+                        @black_player
+                      else
+                        @white_player
+                      end
   end
 
   private
