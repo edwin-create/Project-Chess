@@ -1,1 +1,4 @@
 test_display.rb
+# Ignore everything inside saves/ except the .gitkeep file
+saves/*
+!saves/.gitkeep
