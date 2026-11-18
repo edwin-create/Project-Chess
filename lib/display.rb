@@ -1,15 +1,40 @@
 # frozen_string_literal: true
 
 require_relative 'board'
+
 # Class responsible for displaying messages to the user
 class Display
+  PIECE_SYMBOLS = {
+    king: "\u265A",
+    queen: "\u265B",
+    rook: "\u265C",
+    bishop: "\u265D",
+    knight: "\u265E",
+    pawn: "\u265F\uFE0E"
+  }.freeze
+
+  # High-contrast foreground colors
+  PIECE_COLORS = {
+    white: "\e[38;2;255;255;255m", # Crisp white
+    black: "\e[38;2;20;20;20m" # Deep charcoal
+  }.freeze
+
+  SQUARE_COLORS = {
+    light: "\e[48;2;222;184;135m",
+    dark: "\e[48;2;140;100;65m"
+  }.freeze
+
+  def initialize(board = Board.new)
+    @board = board
+  end
+
   def introduction
     puts 'Welcome to Chess!'
     puts 'Players take turns moving pieces around the board.'
     puts 'The first player to checkmate their opponent wins!'
   end
 
-  def render(_board)
+  def render
     output = String.new
     output << column_labels
     output << "\n"
@@ -29,7 +54,7 @@ class Display
     # That is why we pass 8-row into render_square: the printed rank is 1-based, but
     # the internal board coordinates are 0-based.
     8.downto(1) do |row|
-      output << "#{row} | "
+      output << "#{row} |"
 
       # The column loop starts at 0 because Ruby arrays and board positions are zero-indexed.
       # This matches the coordinate system used by square_color and render_square.
@@ -54,17 +79,19 @@ class Display
   end
 
   def render_square(row, col)
-    color = square_color(row, col)
-    case color
-    when :light
-      "\e[48;2;240;217;181m   \e[0m"
-    when :dark
-      "\e[48;2;181;136;99m   \e[0m"
-    end
+    background_color = SQUARE_COLORS[square_color(row, col)]
+
+    piece = @board.piece_at([row, col])
+
+    contents = piece ? " #{PIECE_SYMBOLS[piece.piece_type]} " : '   '
+
+    foreground = piece ? PIECE_COLORS[piece.color] : ''
+
+    "#{background_color}#{foreground}#{contents}\e[0m"
   end
 
   def horizontal_border
-    '  +----+---+---+---+---+---+---+---+'
+    '  +---+---+---+---+---+---+---+---+'
   end
 
   def column_labels

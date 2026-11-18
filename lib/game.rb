@@ -29,7 +29,7 @@ class Game
       end
 
       # 2. Display the board at the start of every turn
-      puts display.render(board)
+      puts display.render
       puts "\n"
       # 3. Run the turn sequence
       puts "#{current_player.name} (#{current_player.color.capitalize})'s turn."

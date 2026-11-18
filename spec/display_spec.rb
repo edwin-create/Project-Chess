@@ -17,17 +17,17 @@ describe Display do # rubocop:disable Metrics/BlockLength
     it 'renders the horizontal border' do
       board = Array.new(8) { Array.new(8) }
 
-      expect(display.render(board)).to include('+----+---+---+---+---+---+---+---+')
+      expect(display.render).to include('+----+---+---+---+---+---+---+---+')
     end
 
     it 'renders the column labels' do
       board = Array.new(8) { Array.new(8) }
 
-      expect(display.render(board)).to include('    a   b   c   d   e   f   g   h')
+      expect(display.render).to include('    a   b   c   d   e   f   g   h')
     end
     it 'renders the square colors in the correct order' do
       board = Array.new(8) { Array.new(8) }
-      output = display.render(board)
+      output = display.render
       rank_8 = output.lines[2] # rubocop:disable Naming/VariableNumber
 
       light_code = "\e[48;2;240;217;181m"
