@@ -2,7 +2,7 @@
 
 require_relative '../lib/display'
 
-describe Display do # rubocop:disable Metrics/BlockLength
+describe Display do
   let(:display) { Display.new }
 
   describe '#introduction' do
@@ -15,23 +15,18 @@ describe Display do # rubocop:disable Metrics/BlockLength
 
   describe '#render' do
     it 'renders the horizontal border' do
-      board = Array.new(8) { Array.new(8) }
-
-      expect(display.render).to include('+----+---+---+---+---+---+---+---+')
+      expect(display.render).to include('+---+---+---+---+---+---+---+---+')
     end
 
     it 'renders the column labels' do
-      board = Array.new(8) { Array.new(8) }
-
       expect(display.render).to include('    a   b   c   d   e   f   g   h')
     end
     it 'renders the square colors in the correct order' do
-      board = Array.new(8) { Array.new(8) }
       output = display.render
       rank_8 = output.lines[2] # rubocop:disable Naming/VariableNumber
 
-      light_code = "\e[48;2;240;217;181m"
-      dark_code = "\e[48;2;181;136;99m"
+      light_code = "\e[48;2;222;184;135m"
+      dark_code = "\e[48;2;140;100;65m"
 
       expect(rank_8.index(light_code)).to be < rank_8.index(dark_code)
     end

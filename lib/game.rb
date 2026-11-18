@@ -19,7 +19,7 @@ class Game
 
   # Overall game flow
   def play # rubocop:disable Metrics/MethodLength,Metrics/AbcSize
-    display = Display.new
+    display = Display.new(@board)
 
     loop do # rubocop:disable Metrics/BlockLength
       # 1. Check for game over before starting/continuing

@@ -28,12 +28,6 @@ class Display
     @board = board
   end
 
-  def introduction
-    puts 'Welcome to Chess!'
-    puts 'Players take turns moving pieces around the board.'
-    puts 'The first player to checkmate their opponent wins!'
-  end
-
   def render
     output = String.new
     output << column_labels
@@ -44,6 +38,12 @@ class Display
     output << column_labels
     output << "\n"
     output
+  end
+
+  def introduction
+    puts 'Welcome to Chess!'
+    puts 'Players take turns moving pieces around the board.'
+    puts 'The first player to checkmate their opponent wins!'
   end
 
   private
