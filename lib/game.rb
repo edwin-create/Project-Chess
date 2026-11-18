@@ -41,8 +41,7 @@ class Game
       puts display.render(board)
       puts "\n"
       # 3. Run the turn sequence
-      puts "#{current_player.color.capitalize}'s turn."
-
+      puts "#{current_player.name} (#{current_player.color.capitalize})'s turn."
       begin
         input = gets
         if input.nil?
