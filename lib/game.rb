@@ -3,8 +3,9 @@
 require_relative 'board'
 require_relative 'player'
 require_relative 'display'
+require_relative 'game_serializer'
 # Turn management, check/checkmate detection, and overall game flow.
-class Game
+class Game # rubocop:disable Metrics/ClassLength
   attr_reader :current_player, :board, :white_player, :black_player
 
   def initialize(white_player = Player.new(:white), black_player = Player.new(:black))
@@ -32,12 +33,18 @@ class Game
       puts display.render
       puts "\n"
       # 3. Run the turn sequence
-      puts "#{current_player.name} (#{current_player.color.capitalize})'s turn."
+      puts "#{current_player.name} (#{current_player.color.capitalize})'s turn. Type 'save' at any point to save the game and quit." # rubocop:disable Layout/LineLength
       begin
         input = gets
         if input.nil?
           puts 'Game terminated. Thanks for playing!'
           return
+        elsif input.chomp.strip.downcase == 'save'
+          gameserializer = GameSerializer.new(self)
+          filename = gameserializer.save
+          puts "Game saved. Thanks for playing. Your filename is #{filename}"
+          return
+
         else
           input = input.chomp
         end
