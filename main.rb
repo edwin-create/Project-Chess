@@ -16,6 +16,8 @@ def introduction
 end
 
 def start_game # rubocop:disable Metrics/MethodLength
+  display = Display.new
+  display.introduction
   loop do
     case introduction
     when '1'
